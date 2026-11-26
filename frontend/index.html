@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SpiceRoute — Dine-In, Takeaway & Live KDS</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-logo">🍛</span>
+      <div>
+        <h1>SpiceRoute Kitchen</h1>
+        <p class="brand-sub">Dine-In • Takeaway • Live KDS</p>
+      </div>
+    </div>
+
+    <nav class="role-tabs" aria-label="Application Views">
+      <button class="role-tab active" data-view="customer">🍽️ Customer</button>
+      <button class="role-tab" data-view="kds">👨‍🍳 Kitchen (KDS) <span id="kdsBadge" class="pill-count">0</span></button>
+      <button class="role-tab" data-view="admin">⚙️ Admin</button>
+    </nav>
+
+    <div class="topbar-status">
+      <span id="realtimeBadge" class="sync-badge connecting">● Connecting...</span>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <!-- CUSTOMER VIEW -->
+    <section id="view-customer" class="view-section active">
+      <!-- Session & Dine-In / Takeaway Bar -->
+      <div class="card session-bar">
+        <div class="session-controls">
+          <div class="mode-switch" role="group" aria-label="Order Mode">
+            <button id="modeDineInBtn" class="mode-btn active" data-mode="dine_in">🪑 Dine-In</button>
+            <button id="modeTakeawayBtn" class="mode-btn" data-mode="takeaway">🛍️ Takeaway</button>
+          </div>
+
+          <div id="dineInControls" class="inline-group">
+            <label for="tableSelect">Table</label>
+            <select id="tableSelect"></select>
+            <input id="customTableInput" type="text" placeholder="or custom e.g. T-15" maxlength="12" class="input-sm" />
+            <button id="applyModeBtn" class="btn btn-secondary btn-sm">Set Table</button>
+          </div>
+
+          <div id="takeawayControls" class="inline-group hidden">
+            <label for="pickupSlotSelect">Pickup Slot</label>
+            <select id="pickupSlotSelect"></select>
+            <button id="applyPickupBtn" class="btn btn-secondary btn-sm">Set Slot</button>
+          </div>
+        </div>
+
+        <div class="session-share">
+          <div class="inline-group">
+            <label for="dinerNameInput">Your Name</label>
+            <input id="dinerNameInput" type="text" value="Aarav" maxlength="30" class="input-sm" />
+          </div>
+          <div class="inline-group">
+            <span class="session-pill">Session: <strong id="activeSessionCode">—</strong></span>
+            <button id="copySessionBtn" class="btn btn-ghost btn-sm" title="Copy session code">📋 Copy</button>
+          </div>
+          <div class="inline-group">
+            <input id="joinCodeInput" type="text" placeholder="Enter code e.g. DINE-T04" class="input-sm" />
+            <button id="joinSessionBtn" class="btn btn-primary btn-sm">Join Table</button>
+            <button id="newSessionBtn" class="btn btn-ghost btn-sm">+ New</button>
+          </div>
+        </div>
+
+        <div class="session-participants-row">
+          <div id="participantsList" class="participants-chips"></div>
+          <div id="quickSessionsList" class="quick-sessions"></div>
+        </div>
+      </div>
+
+      <div class="customer-grid">
+        <!-- Menu Panel -->
+        <div class="menu-column">
+          <div class="card filters-card">
+            <div class="search-row">
+              <input id="menuSearchInput" type="search" placeholder="Search dishes, paneer, biryani, jain..." />
+              <select id="spiceFilterSelect" aria-label="Filter by spice level">
+                <option value="All">All Spice Levels</option>
+                <option value="None">No Spice</option>
+                <option value="Mild">Mild</option>
+                <option value="Medium">Medium</option>
+                <option value="Hot">Hot</option>
+                <option value="Extra Hot">Extra Hot</option>
+              </select>
+            </div>
+            <div class="filter-pills-row">
+              <div id="categoryTabs" class="category-tabs"></div>
+              <div class="dietary-toggles">
+                <button class="filter-chip" data-diet="veg">🟢 Pure Veg</button>
+                <button class="filter-chip" data-diet="jain">🙏 Jain</button>
+                <button class="filter-chip" data-diet="vegan">🌱 Vegan</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="menuGrid" class="menu-grid"></div>
+        </div>
+
+        <!-- Cart, Split Bill & Live Order Tracker Sidebar -->
+        <aside class="sidebar-column">
+          <div class="card cart-card">
+            <div class="card-header">
+              <h2>🛒 Shared Cart <span id="cartCountBadge" class="pill-count">0</span></h2>
+              <span id="cartModeLabel" class="muted-label">Dine-In</span>
+            </div>
+
+            <div id="cartItemsList" class="cart-items-list"></div>
+
+            <!-- Smart Cart Suggestions -->
+            <div id="smartSuggestionsBox" class="smart-box hidden">
+              <div class="smart-box-title">✨ Smart Pairings for Your Cart</div>
+              <div id="smartSuggestionsList" class="smart-list"></div>
+            </div>
+
+            <!-- Bill Breakdown (INR + GST) -->
+            <div id="billSummaryBox" class="bill-summary hidden">
+              <div class="bill-row"><span>Subtotal</span><span id="billSubtotal">₹0.00</span></div>
+              <div class="bill-row"><span>CGST (2.5%)</span><span id="billCgst">₹0.00</span></div>
+              <div class="bill-row"><span>SGST (2.5%)</span><span id="billSgst">₹0.00</span></div>
+              <div id="billPkgRow" class="bill-row hidden"><span>Eco Packaging (Takeaway)</span><span id="billPkg">₹20.00</span></div>
+              <div class="bill-row bill-total"><span>Grand Total</span><span id="billTotal">₹0.00</span></div>
+            </div>
+
+            <!-- Split Bill Selector -->
+            <div id="splitConfigBox" class="split-box hidden">
+              <div class="split-header">
+                <strong>💸 Split Bill (Optional)</strong>
+                <div class="split-mode-pills">
+                  <button class="mini-pill active" data-split="none">Single Bill</button>
+                  <button class="mini-pill" data-split="equal">Equal</button>
+                  <button class="mini-pill" data-split="item_wise">Item-Wise</button>
+                </div>
+              </div>
+              <div id="splitEqualControls" class="split-sub hidden">
+                <label>Split among</label>
+                <input id="equalCountInput" type="number" min="2" max="20" value="2" class="input-xs" />
+                <span>people</span>
+                <span id="equalPreview" class="split-preview"></span>
+              </div>
+              <div id="splitItemControls" class="split-sub hidden"></div>
+            </div>
+
+            <div id="checkoutActions" class="checkout-actions hidden">
+              <textarea id="orderNotesInput" rows="2" placeholder="Overall order notes (e.g. serve starters first, birthday table)..."></textarea>
+              <button id="placeOrderBtn" class="btn btn-primary btn-block">Place Order to Kitchen →</button>
+            </div>
+          </div>
+
+          <!-- Live Order Status Tracker -->
+          <div class="card tracker-card">
+            <div class="card-header">
+              <h2>📡 Live Order Tracker</h2>
+              <button id="refreshOrdersBtn" class="btn btn-ghost btn-sm">Refresh</button>
+            </div>
+            <div id="customerOrdersList" class="orders-tracker-list"></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- KITCHEN DISPLAY SYSTEM (KDS) VIEW -->
+    <section id="view-kds" class="view-section">
+      <div class="kds-toolbar">
+        <div>
+          <h2>👨‍🍳 Live Kitchen Display System (KDS)</h2>
+          <p class="kds-sub">One-click ticket progression updates Customer trackers in real time.</p>
+        </div>
+        <div id="kdsFilterPills" class="kds-filters">
+          <button class="kds-filter active" data-status="ACTIVE">All Active</button>
+          <button class="kds-filter" data-status="Queued">Queued</button>
+          <button class="kds-filter" data-status="Preparing">Preparing</button>
+          <button class="kds-filter" data-status="Ready">Ready</button>
+          <button class="kds-filter" data-status="Served">Served</button>
+        </div>
+      </div>
+      <div id="kdsGrid" class="kds-grid"></div>
+    </section>
+
+    <!-- ADMIN VIEW -->
+    <section id="view-admin" class="view-section">
+      <div id="adminMetricsGrid" class="metrics-grid"></div>
+
+      <div class="admin-two-col">
+        <div class="card">
+          <div class="card-header">
+            <h2>🏆 Top Dishes</h2>
+          </div>
+          <div id="topDishesTable"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>➕ Add New Menu Item</h2>
+          </div>
+          <form id="adminCreateForm" class="admin-form">
+            <div class="form-grid">
+              <label>Dish Name <input name="name" required placeholder="e.g. Palak Paneer" /></label>
+              <label>Category
+                <select name="category">
+                  <option>Starters</option>
+                  <option selected>Mains</option>
+                  <option>Breads & Rice</option>
+                  <option>Beverages</option>
+                  <option>Desserts</option>
+                </select>
+              </label>
+              <label>Price (₹) <input name="price_rupees" type="number" min="1" step="1" required placeholder="320" /></label>
+              <label>Spice Level
+                <select name="spice_level">
+                  <option>None</option>
+                  <option>Mild</option>
+                  <option selected>Medium</option>
+                  <option>Hot</option>
+                  <option>Extra Hot</option>
+                </select>
+              </label>
+              <label>Stock Qty <input name="stock_count" type="number" min="0" value="30" required /></label>
+              <label>Prep Time (mins) <input name="prep_time_mins" type="number" min="1" value="15" required /></label>
+              <label>Emoji <input name="image_emoji" value="🍲" maxlength="4" /></label>
+            </div>
+            <label>Description <input name="description" required placeholder="Rich spinach puree with cottage cheese and garlic tempering." /></label>
+            <div class="checkbox-row">
+              <label><input type="checkbox" name="is_veg" checked /> Vegetarian</label>
+              <label><input type="checkbox" name="is_jain" /> Jain</label>
+              <label><input type="checkbox" name="is_vegan" /> Vegan</label>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Menu Item</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>📋 Menu & Stock Management</h2>
+        </div>
+        <div id="adminMenuTable" class="admin-table-wrap"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Dish Customisation & Smart Add-On Modal -->
+  <div id="customiseModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 id="modalDishName">Dish Name</h3>
+          <p id="modalDishDesc" class="muted-label"></p>
+        </div>
+        <button id="closeModalBtn" class="btn btn-ghost btn-sm">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-section">
+          <label class="section-label">Quantity & Spice Preference</label>
+          <div class="inline-group">
+            <div class="qty-stepper">
+              <button id="modalQtyMinus" type="button">−</button>
+              <span id="modalQtyVal">1</span>
+              <button id="modalQtyPlus" type="button">+</button>
+            </div>
+            <select id="modalSpiceSelect"></select>
+          </div>
+        </div>
+
+        <div id="modalCustomisationsSection" class="modal-section">
+          <label class="section-label">Customisations</label>
+          <div id="modalCustomisationsList" class="addons-list"></div>
+        </div>
+
+        <div id="modalSmartAddonsSection" class="modal-section">
+          <label class="section-label">✨ Recommended Add-Ons</label>
+          <div id="modalSmartAddonsList" class="addons-list"></div>
+        </div>
+
+        <div class="modal-section">
+          <label class="section-label" for="modalNotesInput">Special Kitchen Instructions</label>
+          <input id="modalNotesInput" type="text" placeholder="e.g. Less oil, extra lemon, no coriander" maxlength="200" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <span id="modalTotalPreview" class="modal-price">₹0.00</span>
+        <button id="modalAddBtn" class="btn btn-primary">Add to Shared Cart</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Split Existing Order Modal -->
+  <div id="splitOrderModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>💸 Split Bill — <span id="splitModalOrderNum"></span></h3>
+        <button id="closeSplitModalBtn" class="btn btn-ghost btn-sm">✕</button>
+      </div>
+      <div id="splitModalBody" class="modal-body"></div>
+      <div class="modal-footer">
+        <span id="splitModalTotal" class="modal-price">₹0.00</span>
+        <button id="saveSplitModalBtn" class="btn btn-primary">Apply Split</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>
