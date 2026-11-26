@@ -7,18 +7,27 @@ import { createCustomerController } from "/js/customer.js";
 import { createKdsController } from "/js/kds.js";
 import { createAdminController } from "/js/admin.js";
 
+const portalParam = new URLSearchParams(window.location.search).get("portal") || "customer";
+
+const initialView = portalParam === "admin" ? "admin" : portalParam === "kds" ? "kds" : "customer";
+
 const state = {
   config: {},
   menu: [],
   session: null,
   activeSessions: [],
   orders: [],
-  activeView: "customer",
+  activeView: initialView,
 };
 
 const toastContainer = document.getElementById("toastContainer");
 const realtimeBadge = document.getElementById("realtimeBadge");
 const roleTabs = document.querySelectorAll(".role-tab");
+
+roleTabs.forEach((tab) => {
+  if (tab.dataset.view !== initialView) tab.hidden = true;
+});
+
 const viewSections = {
   customer: document.getElementById("view-customer"),
   kds: document.getElementById("view-kds"),
@@ -70,6 +79,7 @@ async function bootstrap() {
     adminCtrl = createAdminController(state, showToast, () => customerCtrl.loadMenu());
 
     await Promise.all([customerCtrl.init(), refreshAllOrders()]);
+    switchView(initialView);
 
     const rt = new RealtimeClient(
       async (evtName, payload) => {

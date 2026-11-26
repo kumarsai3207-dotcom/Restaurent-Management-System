@@ -112,7 +112,18 @@ class RestaurantRequestHandler(BaseHTTPRequestHandler):
             self.server.broker.unsubscribe(sub_q)
 
     def _serve_static(self, raw_path: str) -> None:
-        rel = raw_path.lstrip("/") or "index.html"
+        portal_entry = {
+            "/customer": "customer/index.html",
+            "/customer/": "customer/index.html",
+            "/staff": "staff/index.html",
+            "/staff/": "staff/index.html",
+            "/admin": "staff/index.html",
+            "/admin/": "staff/index.html",
+        }.get(raw_path)
+        if portal_entry:
+            rel = portal_entry
+        else:
+            rel = raw_path.lstrip("/") or "index.html"
         target = (self.server.frontend_dir / rel).resolve()
         root = self.server.frontend_dir.resolve()
 

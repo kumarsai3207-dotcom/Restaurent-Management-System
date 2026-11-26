@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SpiceRoute Admin & Staff Portal</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    body { margin: 0; background: #111827; }
+    .staff-switcher { display: flex; gap: 10px; padding: 12px 16px; background: #1f2937; }
+    .staff-switcher button { border: 0; border-radius: 8px; padding: 10px 16px; cursor: pointer; font-weight: 700; }
+    .staff-switcher button.active { background: #f97316; color: white; }
+    .staff-frame { width: 100%; height: calc(100vh - 58px); border: 0; background: white; }
+  </style>
+</head>
+<body>
+  <div class="staff-switcher" role="navigation" aria-label="Staff portal">
+    <button id="kdsBtn" class="active" type="button">Kitchen (KDS)</button>
+    <button id="adminBtn" type="button">Admin</button>
+  </div>
+  <iframe id="staffFrame" class="staff-frame" src="/index.html?portal=kds" title="SpiceRoute Staff Portal"></iframe>
+  <script>
+    const frame = document.getElementById('staffFrame');
+    const kdsBtn = document.getElementById('kdsBtn');
+    const adminBtn = document.getElementById('adminBtn');
+    function select(portal) {
+      kdsBtn.classList.toggle('active', portal === 'kds');
+      adminBtn.classList.toggle('active', portal === 'admin');
+      frame.src = `/index.html?portal=${portal}`;
+    }
+    kdsBtn.addEventListener('click', () => select('kds'));
+    adminBtn.addEventListener('click', () => select('admin'));
+    const initialPortal = window.location.pathname.startsWith('/admin') ? 'admin' : 'kds';
+    select(initialPortal);
+  </script>
+</body>
+</html>
